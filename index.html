@@ -258,7 +258,6 @@ const ITEMS={
  manigaLlarga:{f:'fred',n:'Màniga llarga',s:`<path d="${JK}"/><path d="M8 4Q12 7 16 4"/>`},
  tallavent:{f:'fred',n:'Jaqueta',vb:'-4 0 28 24',s:`<path d="${JK}"/><path d="M8 4Q12 -1 16 4"/><path d="M12 4V21"/><path d="M-3 9H1M-3.5 13H2M-3 17H1"/>`},
  polar:{f:'fred',n:'Polar',s:`<path d="${JK}"/><path d="M9 4V2.5H15V4"/><path d="M12 2.5V8"/><circle class="f" cx="10" cy="13" r=".7"/><circle class="f" cx="14" cy="13" r=".7"/><circle class="f" cx="12" cy="16" r=".7"/><circle class="f" cx="10" cy="19" r=".7"/><circle class="f" cx="14" cy="19" r=".7"/>`},
- termica:{f:'fred',n:'Samarreta',s:`<path d="${JK}"/><path d="M8 4Q12 7 16 4"/><path d="M10 11Q11 12.5 10 14Q9 15.5 10 17"/><path d="M14 11Q15 12.5 14 14Q13 15.5 14 17"/>`},
  plomes:{f:'fred',n:'Anorak',s:'<path d="M8 3.5L2.5 6.5L3 20.5H7.5V11V21.5H16.5V11V20.5H21L21.5 6.5L16 3.5"/><path d="M8 3.5V1.5H16V3.5"/><path d="M12 10.5V18.5M8.5 12.5L15.5 16.5M8.5 16.5L15.5 12.5" stroke-width="1.4"/><path d="M11 11L12 12L13 11M11 18L12 17L13 18" stroke-width="1.2"/>'},
  bufanda:{f:'fred',n:'Bufanda',s:'<path d="M5 6Q12 11 19 6V9Q12 14 5 9Z"/><path d="M13 11L12 20H15.5L15.8 10.5"/><path d="M12.5 20V22M13.8 20V22M15 20V22"/>'},
  gorro:{f:'fred',n:'Gorro',s:'<path d="M5 16Q5 7 12 7Q19 7 19 16"/><rect x="4" y="15.5" width="16" height="4.5" rx="1.5"/><path d="M8 16V20M12 16V20M16 16V20"/><circle cx="12" cy="5" r="2"/>'},
@@ -267,8 +266,6 @@ const ITEMS={
  passamuntanyes:{f:'fred',n:'Buff',s:'<path d="M12 2Q20 2 20 11Q20 21 12 21Q4 21 4 11Q4 2 12 2Z"/><rect x="7" y="9" width="10" height="3.5" rx="1.75"/><circle class="f" cx="9.7" cy="10.75" r=".8"/><circle class="f" cx="14.3" cy="10.75" r=".8"/>'},
  paraigua:{f:'pluja',n:'Paraigua',s:'<path d="M2.5 12.5Q3.5 4 12 4Q20.5 4 21.5 12.5Q19.3 10.8 16.8 12.5Q14.4 10.8 12 12.5Q9.6 10.8 7.2 12.5Q4.7 10.8 2.5 12.5Z"/><path d="M12 4Q9 7.5 9.6 11.7M12 4Q15 7.5 14.4 11.7"/><path d="M12 2.5V4M12 12.5V19Q12 21 10.2 21Q8.5 21 8.5 19.3"/>'},
  jaquetaImp:{f:'pluja',n:'Impermeable',s:'<path d="M8 5L3 8L4 21H7L7.5 12V22H16.5V12L17 21H20L21 8L16 5"/><path d="M8 5Q12 0 16 5"/><path d="M12 5V22"/>'+DROP(3,1)+DROP(21,1)},
- frontal:{f:'vis',n:'Frontal',s:'<rect x="12" y="8" width="5" height="7" rx="1.5"/><path d="M12 9.5Q4 7 3 11.5Q4 16 12 13.5"/><path d="M19 8L23 6M19 11.5H23.5M19 15L23 17"/>'},
- armilla:{f:'vis',n:'Reflectant',s:'<path d="M8 3L4 6V21H20V6L16 3L12 10Z"/><path d="M4 14H20M4 17.5H20" stroke-width="2.4"/>'},
  evitarCoto:{f:'vis',n:'Eviteu cotó',s:'<circle cx="9" cy="10" r="3.2"/><circle cx="15" cy="10" r="3.2"/><circle cx="12" cy="14.5" r="3.2"/><path d="M12 17.7V22"/><path d="M3 3L21 21" stroke-width="2"/>'}
 };
 const FAM={avis:'var(--avis)',sol:'var(--sol)',fred:'var(--fred)',pluja:'var(--pluja)',vis:'var(--vis)'};
@@ -369,6 +366,7 @@ function metrics(d,di){
     storm:codes.some(c=>c>=95), snow:codes.some(c=>(c>=71&&c<=77)||c===85||c===86),
     drizzle:codes.some(c=>c>=51&&c<=57), fog:codes.some(c=>c===45||c===48),
     rhCold:max(rhCold)||0, visMin:vis.length?min(vis):null,
+    clear:(()=>{const dc=idx.filter(i=>H.is_day?H.is_day[i]===1:true).map(i=>H.weather_code[i]);return dc.length>0&&dc.filter(c=>c<=1).length/dc.length>=0.5})(),
     hail:codes.some(c=>c===96||c===99), daySum:d.daily.precipitation_sum[di]??0, dayGust:d.daily.wind_gusts_10m_max[di]??0,
     dayMax:d.daily.temperature_2m_max[di], dayMin:d.daily.temperature_2m_min[di]
   };
@@ -388,16 +386,21 @@ function evaluate(m){
   if(m.snow) av.push('neu');
   if(m.hail) av.push('tempesta amb calamarsa');
   if(av.length) add('avis',av.join(' · ').replace(/^./,c=>c.toUpperCase()));
-  if(m.uv>3){ add('ulleresSol',`Índex UV ${uv}`); add('crema',`Índex UV ${uv}`); }
+  if(m.uv>3) add('ulleresSol',`Índex UV ${uv}`);
+  if(m.uv>3&&m.clear) add('crema',`Sol i cel clar · índex UV ${uv}`);
   if((m.uv>5||m.tMax>22)&&f>=5) add('gorra',m.tMax>22?`Màxima de ${R(m.tMax)} °C`:`Índex UV ${uv}`);
-  if(m.tMax>22){ add('estiu',`Màxima de ${R(m.tMax)} °C`); add('aigua',`Màxima de ${R(m.tMax)} °C`); }
+  if(m.tMax>22) add('estiu',`Màxima de ${R(m.tMax)} °C`);
+  if(m.tMax>28) add('aigua',`Màxima de ${R(m.tMax)} °C`);
   if(f>=10&&f<=17) add('tallavent',`Sensació mínima de ${R(f)} °C`);
   if(f>=10&&f<=15) add('manigaLlarga',`Sensació mínima de ${R(f)} °C`);
   if(m.wind>=15&&f>=10&&f<22) add('tallavent',`Vent de ${R(m.wind)} km/h`);
-  if(f<10){ add('termica',`Sensació mínima de ${R(f)} °C`); add('polar',`Sensació mínima de ${R(f)} °C`); add('guants',`Sensació mínima de ${R(f)} °C`); add('bufanda',`Sensació mínima de ${R(f)} °C`); }
+  if(f<10) add('polar',`Sensació mínima de ${R(f)} °C`);
+  if(f<8) add('guants',`Sensació mínima de ${R(f)} °C`);
+  if(f<5) add('passamuntanyes',`Sensació mínima de ${R(f)} °C`);
+  else if(f<10&&m.wind>30) add('bufanda',`Sensació mínima de ${R(f)} °C i vent de ${R(m.wind)} km/h`);
   if(f>=5&&f<10) add('tallavent',`Sensació mínima de ${R(f)} °C`);
   if(f<5){ add('plomes',`Sensació mínima de ${R(f)} °C`); add('gorro',`Sensació mínima de ${R(f)} °C`); }
-  if(f<0){ add('botes','Temperatures sota zero'); add('passamuntanyes','Temperatures sota zero'); }
+  if(f<0) add('botes','Temperatures sota zero');
   if(m.snow){ add('botes','Neu prevista'); add('gorro','Neu prevista'); add('guants','Neu prevista'); }
   if(m.gust>40&&!r.plomes) add('tallavent',`Ràfegues de ${g} km/h`);
   const heavy=m.pSum>=4||m.pMaxH>=2||m.storm;
@@ -406,7 +409,6 @@ function evaluate(m){
   if(heavy||light) add('paraigua',m.gust>50?`${heavy?pw:'Pluja prevista'} · compte, ràfegues de ${g} km/h`:(heavy?pw:`Probabilitat de pluja ${R(m.prob)} %`));
   if(heavy) add('jaquetaImp',pw);
   if(m.rhCold>80) add('evitarCoto',`Humitat del ${R(m.rhCold)} % amb fred`);
-  if(m.fog||(m.visMin!=null&&m.visMin<1000)){ const w=m.fog?'Boira prevista':`Visibilitat de ${R(m.visMin)} m`; add('frontal',w); add('armilla',w); }
   return Object.keys(ITEMS).filter(k=>r[k]).map(k=>({k,why:r[k]}));
 }
 
