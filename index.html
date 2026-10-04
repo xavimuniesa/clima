@@ -140,6 +140,21 @@ body.is-manual .manual{display:inline-flex}
 .hbar{display:flex;justify-content:center;gap:4px;margin-top:8px}
 .hbar span{height:3px;border-radius:2px;background:#232830;flex:0 0 auto}
 .hbar .th{background:var(--mut)}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:#12161b;color:var(--mut);font:500 clamp(13px,1vw,15px) 'Barlow Condensed';letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:.2s}
+.tabs button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7}
+.tabs button svg .f{fill:currentColor}
+.tabs button.on{color:var(--fred);border-color:rgba(77,178,255,.45);background:rgba(77,178,255,.08)}
+.pager{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.pager::-webkit-scrollbar{display:none}
+.pg{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column}
+.pg.radar{padding-left:2px}
+.rframe{position:relative;flex:1;min-height:320px;border-radius:14px;overflow:hidden;border:1px solid #1b2027;background:#0a0c0f}
+.rframe iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+.rload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);font:500 15px 'Barlow Condensed';pointer-events:none}
+.rframe.ok .rload{display:none}
+.rcap{margin-top:8px;color:var(--mut);font:500 clamp(13px,1vw,15px) 'Barlow Condensed'}
+.rcap a{color:var(--fred)}
 .why{margin-top:10px;min-height:22px;color:var(--mut);font:500 clamp(14px,1.05vw,16px)/1.25 'Barlow Condensed';display:flex;align-items:center;gap:8px}
 .why .dot{width:8px;height:8px;border-radius:50%;background:var(--c,var(--ok));box-shadow:0 0 8px var(--c,var(--ok));flex:none}
 .why.ok{color:var(--ok)}
@@ -164,6 +179,9 @@ body.is-manual .manual{display:inline-flex}
   .slot{gap:clamp(4px,1vh,12px)}
   .panel,.screen{min-height:0}
   .slots{flex:1;min-height:0;grid-auto-rows:minmax(0,1fr)}
+  .pager{flex:1;min-height:0}
+  .pg{min-height:0}
+  .rframe{min-height:0}
   .slot{aspect-ratio:auto}
 }
 /* Mòbil estret */
@@ -223,7 +241,9 @@ body.is-manual .manual{display:inline-flex}
 
     <section class="panel" id="p0"><div class="screen">
       <div class="ph"><h2>AVUI</h2><div class="dt"><span class="date"></span><span class="wd"></span><span class="hol"></span></div></div>
-      <div class="strip"></div><div class="slots"></div><div class="why"></div><div class="hwrap"><div class="hours"></div><div class="hbar"><span class="tr"></span></div></div>
+      <div class="strip"></div>
+      <div class="tabs" role="tablist"><button type="button" class="on" data-p="0" role="tab">Recomanacions</button><button type="button" data-p="1" role="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12L18.5 5.5"/><circle class="f" cx="15.5" cy="9" r="1.2"/></svg>Radar Meteocat</button></div>
+      <div class="pager"><div class="pg"><div class="slots"></div><div class="why"></div></div><div class="pg radar"><div class="rframe"><iframe title="Radar meteorològic del Meteocat" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="rload">Carregant el radar…</div></div><div class="rcap">Última imatge del radar del <a href="https://www.meteo.cat/observacions/radar" target="_blank" rel="noopener">Meteocat</a> · s'actualitza cada 6 minuts</div></div></div><div class="hwrap"><div class="hours"></div><div class="hbar"><span class="tr"></span></div></div>
     </div></section>
 
     <section class="panel" id="p1"><div class="screen">
@@ -599,6 +619,30 @@ $('#q').addEventListener('keydown',e=>{
 $('#q').addEventListener('blur',()=>setTimeout(closeRes,120));
 $('#gps').addEventListener('click',useGPS);
 $('#manual').addEventListener('click',useGPS);
+
+/* ---------- Pàgines del quadre d'AVUI: recomanacions ⇄ radar ---------- */
+const RADAR='https://static-m.meteo.cat/ginys/mapaRadar?language=ca&color=f95441&target=_blank';
+(function(){
+  const pager=document.querySelector('#p0 .pager'), tabs=[...document.querySelectorAll('#p0 .tabs button')];
+  const frame=pager.querySelector('iframe'), box=pager.querySelector('.rframe');
+  let rt=null;
+  const loadRadar=()=>{ frame.src=RADAR+'&t='+Math.floor(Date.now()/36e4); };
+  frame.addEventListener('load',()=>{ if(frame.src) box.classList.add('ok'); });
+  const page=()=>Math.round(pager.scrollLeft/Math.max(1,pager.clientWidth));
+  const sync=()=>{
+    const p=page(); tabs.forEach((b,i)=>{b.classList.toggle('on',i===p);b.setAttribute('aria-selected',i===p)});
+    if(p===1){ if(!frame.src) loadRadar(); if(!rt) rt=setInterval(()=>{ if(page()===1&&document.visibilityState==='visible') loadRadar(); },6*60*1000); }
+  };
+  let st=null; pager.addEventListener('scroll',()=>{clearTimeout(st);st=setTimeout(sync,80)},{passive:true});
+  tabs.forEach((b,i)=>b.addEventListener('click',()=>pager.scrollTo({left:i*pager.clientWidth,behavior:'smooth'})));
+  addEventListener('resize',()=>{ pager.scrollLeft=page()*pager.clientWidth; });
+  /* arrossegar amb el ratolí a l'ordinador */
+  let down=false,x0=0,s0=0,mv=false;
+  pager.addEventListener('pointerdown',e=>{ if(e.pointerType!=='mouse'||e.target.closest('.slot.on,iframe,a')) return; down=true;mv=false;x0=e.clientX;s0=pager.scrollLeft; });
+  addEventListener('pointermove',e=>{ if(!down) return; const dx=e.clientX-x0; if(Math.abs(dx)>6){mv=true;pager.style.scrollSnapType='none'} if(mv) pager.scrollLeft=s0-dx; });
+  addEventListener('pointerup',e=>{ if(!down) return; down=false; pager.style.scrollSnapType='';
+    if(mv){ const dx=e.clientX-x0, p=Math.abs(dx)>pager.clientWidth*.15?(dx<0?1:0):page(); pager.scrollTo({left:p*pager.clientWidth,behavior:'smooth'}); } });
+})();
 
 /* En tornar a la pestanya o a l'app, refrescar si les dades tenen més de 5 minuts */
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&place&&Date.now()-lastLoad>5*60*1000) load(); });
